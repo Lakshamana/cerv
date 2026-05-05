@@ -1,12 +1,15 @@
 #include "cerv/cerv.h"
+#include <stdlib.h>
 
-void cerv_server_init(CervServer *s, int port, int max_workers) {
-  (void)s;
-  (void)port;
-  (void)max_workers;
+CervServer *cerv_new(int port, int max_workers) {
+  CervServer *s = malloc(sizeof(CervServer));
+  s->max_workers = max_workers;
+  s->port = port;
+
+  return s;
 }
 
-int cerv_server_run(CervServer *s) {
+int cerv_run(CervServer *s) {
   (void)s;
   return 0;
 }
