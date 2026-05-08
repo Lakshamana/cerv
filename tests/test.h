@@ -33,7 +33,7 @@ static inline void _print_fail(const char *msg) {
       passed++;                                                                \
     } else {                                                                   \
       FAIL(__VA_ARGS__);                                                       \
-      printf("    got \"%s\", expected \"%s\"\n", _g ? _g : "(null)", _e);    \
+      printf("    got \"%s\", expected \"%s\"\n", _g ? _g : "(null)", _e);     \
       failed++;                                                                \
     }                                                                          \
   } while (0)
@@ -47,12 +47,14 @@ static inline void _print_fail(const char *msg) {
       passed++;                                                                \
     } else {                                                                   \
       FAIL(__VA_ARGS__);                                                       \
-      printf("    got %d, expected %d\n", _g, _e);                            \
+      printf("    got %d, expected %d\n", _g, _e);                             \
       failed++;                                                                \
     }                                                                          \
   } while (0)
 
 #define ASSERT_NULL(got, ...) ASSERT_INT_EQ((got) == NULL, 1, ##__VA_ARGS__)
+#define ASSERT_NOT_NULL(got, ...) ASSERT_INT_EQ((got) == NULL, 0, ##__VA_ARGS__)
+#define ASSERT(got, ...) ASSERT_INT_EQ((got), 1, ##__VA_ARGS__)
 
 #define TEST(name) printf("TEST %s\n", #name)
 

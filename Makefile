@@ -9,4 +9,4 @@ clean:
 	rm -rf build
 
 test: build
-	ctest --test-dir build --output-on-failure
+	ctest --test-dir build -V

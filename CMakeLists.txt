@@ -17,7 +17,7 @@ target_include_directories(cerv_core PUBLIC include)
 target_compile_options(cerv_core PRIVATE -Wall -Wextra -Wpedantic)
 
 enable_testing()
-# Test targets are added per-week as test files are written:
-#   add_executable(test_router tests/unit/test_router.c src/router.c)
-#   target_include_directories(test_router PRIVATE include tests)
-#   add_test(NAME router COMMAND test_router)
+
+add_executable(test_router tests/unit/test_router.c src/router.c)
+target_include_directories(test_router PRIVATE include tests)
+add_test(NAME router COMMAND test_router)
