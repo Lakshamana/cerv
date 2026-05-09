@@ -19,5 +19,7 @@ target_compile_options(cerv_core PRIVATE -Wall -Wextra -Wpedantic)
 enable_testing()
 
 add_executable(test_router tests/unit/test_router.c src/router.c)
+add_executable(hello examples/hello.c)
+target_link_libraries(hello PRIVATE cerv_core)
 target_include_directories(test_router PRIVATE include tests)
 add_test(NAME router COMMAND test_router)
