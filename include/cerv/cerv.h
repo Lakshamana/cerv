@@ -8,7 +8,7 @@
 #include "task.h"
 
 typedef struct {
-  CervRouter router;
+  CervRouter* router;
   int        port;
   int        max_workers; // pre-forked worker pool size
 } CervServer;
