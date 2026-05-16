@@ -1,5 +1,7 @@
 {
   "name": "cerv",
   "version": "0.1.0",
-  "dependencies": []
+  "dependencies": [
+    "llhttp"
+  ]
 }

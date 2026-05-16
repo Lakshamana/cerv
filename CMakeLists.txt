@@ -16,6 +16,9 @@ add_library(cerv_core STATIC
 target_include_directories(cerv_core PUBLIC include)
 target_compile_options(cerv_core PRIVATE -Wall -Wextra -Wpedantic)
 
+find_package(llhttp CONFIG REQUIRED)
+target_link_libraries(cerv_core PUBLIC llhttp::llhttp_static)
+
 enable_testing()
 
 add_executable(test_router tests/unit/test_router.c src/router.c)

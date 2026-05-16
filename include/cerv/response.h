@@ -7,7 +7,10 @@ typedef struct {
   char *content_type; // e.g. "application/json"
 } CervResponse;
 
-void cerv_response_set_body(CervResponse *res, const char *body);
-void cerv_response_set_status(CervResponse *res, int status);
+CervResponse* cerv_response_new();
+void          cerv_response_set_body(CervResponse *res, const char *body);
+void          cerv_response_set_status(CervResponse *res, int status);
+void          close_res(CervResponse* res);
+char*         cerv_response_serialize(CervResponse* res);
 
 #endif // CERV_RESPONSE_H

@@ -1,5 +1,8 @@
 #include "cerv/cerv.h"
 #include "cerv/defs.h"
+#include "cerv/handler.h"
+#include "cerv/request.h"
+#include "cerv/response.h"
 #include "cerv/router.h"
 #include <errno.h>
 #include <netdb.h>
@@ -40,13 +43,20 @@ int cerv_run(CervServer *s) {
   socket_d = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
   if (socket_d == -1) {
     fprintf(stderr, "error allocating socket: %d", errno);
+    freeaddrinfo(res);
     return CERV_DEF_RET_ERROR;
   }
 
+  int opt = 1;
+  setsockopt(socket_d, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
   if ((bind(socket_d, res->ai_addr, res->ai_addrlen)) != 0) {
     fprintf(stderr, "error binding to socket err: %d\n", errno);
+    freeaddrinfo(res);
+    close(socket_d);
     return CERV_DEF_RET_ERROR;
   }
+  freeaddrinfo(res);
 
   if (listen(socket_d, CERV_DEF_MAX_BACKLOG) == -1) {
     fprintf(stderr, "error listening to the port=%d: %d", s->port, errno);
@@ -59,25 +69,33 @@ int cerv_run(CervServer *s) {
       fprintf(stderr, "could not accept request: %d", errno);
     }
 
-    int recv_status;
-    char* req_buf = calloc(1, 4096);
-    if ((recv_status = recv(clfd, req_buf, 4096, 0)) < 0) {
+    int n_bytes;
+    char *reqbuf = calloc(1, 4096);
+    if ((n_bytes = recv(clfd, reqbuf, 4096, 0)) < 0) {
       fprintf(stderr, "error receiving msg from client: %d\n", errno);
       continue;
     }
 
-    printf("Message received: %s\n", req_buf);
-    printf("wait for the response...\n");
+    CervRequest *req = parse_req(reqbuf, n_bytes);
+    CervHandler *handler = cerv_router_match(s->router, req->method, req->path);
+    if (handler == NULL) {
+      fprintf(stderr, "route not found!");
+    }
 
-    char *resp = "world!";
+    CervResponse *res = cerv_response_new();
+    handler->handle(handler, req, res);
+
+    char *resp_body = cerv_response_serialize(res);
     int len, bytes_sent;
-    len = strlen(resp);
+    len = strlen(resp_body);
 
-    bytes_sent = send(clfd, resp, len, 0);
+    bytes_sent = send(clfd, resp_body, len, 0);
 
-    free(req_buf);
+    free(reqbuf);
+    close_req(req);
+    close_res(res);
     close(clfd);
-    printf("%s\n", resp);
+    printf("%s\n", resp_body);
     printf("Bytes sent: %d\n", bytes_sent);
   }
 

@@ -25,8 +25,8 @@ static void test_cerv_router_add_route() {
   CervRouter *r = cerv_router_new();
   TestHandler *h = malloc(sizeof(TestHandler));
 
-  int result1 = cerv_router_add(r, "POST", "/path", r);
-  int result2 = cerv_router_add(r, "GET", "/another", r);
+  int result1 = cerv_router_add(r, "POST", "/path", &h);
+  int result2 = cerv_router_add(r, "GET", "/another", &h);
 
   ASSERT(result1 == 0, "should add POST route successfully");
   ASSERT(result2 == 0, "should add GET route successfully");
@@ -71,7 +71,9 @@ static void test_cerv_router_cannot_overflow_route_buffer() {
     last_result = cerv_router_add(r, "GET", name, h);
   }
 
-  ASSERT(last_result == -1, "it should refuse accepting routes which would cause buffer to overflow");
+  ASSERT(
+      last_result == -1,
+      "it should refuse accepting routes which would cause buffer to overflow");
 }
 
 static void test_cerv_router_match() {
