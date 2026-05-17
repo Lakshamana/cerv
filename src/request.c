@@ -28,6 +28,15 @@ int handle_on_body(llhttp_t *p, const char *at, size_t len) {
   return CERV_DEF_RET_SUCCESS;
 }
 
+int handle_on_msg_complete(llhttp_t *p) {
+  int *done = malloc(sizeof(int));
+  *done = 1;
+
+  p->data = done;
+
+  return CERV_DEF_RET_SUCCESS;
+}
+
 CervRequest *parse_req(const char *body, size_t len) {
   llhttp_t parser;
   llhttp_settings_t settings;
@@ -40,8 +49,7 @@ CervRequest *parse_req(const char *body, size_t len) {
   llhttp_init(&parser, HTTP_BOTH, &settings);
   parser.data = &parsed_r;
 
-  char *body_dup = strdup(body);
-  enum llhttp_errno err = llhttp_execute(&parser, body_dup, len);
+  enum llhttp_errno err = llhttp_execute(&parser, body, len);
   if (err != HPE_OK) {
     fprintf(stderr, "Parse error: %s %s\n", llhttp_errno_name(err),
             llhttp_get_error_reason(&parser));
@@ -54,6 +62,27 @@ CervRequest *parse_req(const char *body, size_t len) {
   req->method = llhttp_method_name(llhttp_get_method(&parser));
 
   return req;
+}
+
+void check_done(const char *chunk, size_t s, int *done) {
+  llhttp_t parser;
+  llhttp_settings_t settings;
+
+  llhttp_settings_init(&settings);
+  settings.on_message_complete = handle_on_msg_complete;
+
+  llhttp_init(&parser, HTTP_BOTH, &settings);
+  parser.data = done;
+
+  enum llhttp_errno err = llhttp_execute(&parser, chunk, s);
+  if (err != HPE_OK) {
+    fprintf(stderr, "Parse error: %s %s\n", llhttp_errno_name(err),
+            llhttp_get_error_reason(&parser));
+    *done = -1;
+    return;
+  }
+
+  *done = *(int *)parser.data;
 }
 
 void close_req(CervRequest *r) {

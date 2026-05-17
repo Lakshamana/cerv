@@ -13,5 +13,6 @@ typedef struct {
 
 CervRequest* parse_req(const char* body, size_t len);
 void         close_req(CervRequest* r);
+void         check_done(const char *chunk, size_t s, int *done);
 
 #endif // CERV_REQUEST_H

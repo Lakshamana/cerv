@@ -6,6 +6,7 @@
 #include "cerv/router.h"
 #include <errno.h>
 #include <netdb.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -70,13 +71,20 @@ int cerv_run(CervServer *s) {
     }
 
     int n_bytes;
-    char *reqbuf = calloc(1, 4096);
-    if ((n_bytes = recv(clfd, reqbuf, 4096, 0)) < 0) {
-      fprintf(stderr, "error receiving msg from client: %d\n", errno);
-      continue;
+    char *reqbuf = calloc(1, CERV_DEF_READ_CHUNK);
+    int done = 0;
+    size_t buf_s = 0;
+    while ((n_bytes = recv(clfd, reqbuf + buf_s, CERV_DEF_READ_CHUNK, 0)) > 0) {
+      buf_s += n_bytes;
+      check_done(reqbuf, buf_s, &done);
+
+      if (done)
+        break;
+
+      reqbuf = realloc(reqbuf, buf_s + CERV_DEF_READ_CHUNK);
     }
 
-    CervRequest *req = parse_req(reqbuf, n_bytes);
+    CervRequest *req = parse_req(reqbuf, buf_s);
     CervHandler *handler = cerv_router_match(s->router, req->method, req->path);
     if (handler == NULL) {
       fprintf(stderr, "route not found!");
@@ -86,17 +94,15 @@ int cerv_run(CervServer *s) {
     handler->handle(handler, req, res);
 
     char *resp_body = cerv_response_serialize(res);
-    int len, bytes_sent;
+    int len;
     len = strlen(resp_body);
 
-    bytes_sent = send(clfd, resp_body, len, 0);
+    send(clfd, resp_body, len, 0);
 
     free(reqbuf);
     close_req(req);
     close_res(res);
     close(clfd);
-    printf("%s\n", resp_body);
-    printf("Bytes sent: %d\n", bytes_sent);
   }
 
   freeaddrinfo(res);
