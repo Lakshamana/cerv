@@ -85,13 +85,15 @@ int cerv_run(CervServer *s) {
     }
 
     CervRequest *req = parse_req(reqbuf, buf_s);
-    CervHandler *handler = cerv_router_match(s->router, req->method, req->path);
-    if (handler == NULL) {
-      fprintf(stderr, "route not found!");
-    }
-
     CervResponse *res = cerv_response_new();
-    handler->handle(handler, req, res);
+
+    CervHandler *handler = cerv_router_match(s->router, req->method, req->path);
+    if (handler != NULL) {
+      handler->handle(handler, req, res);
+    } else {
+      cerv_response_set_status(res, 404);
+      cerv_response_set_body(res, "");
+    }
 
     char *resp_body = cerv_response_serialize(res);
     int len;
