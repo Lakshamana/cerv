@@ -201,6 +201,168 @@ static void test_parse_post_empty_body() {
   close_req(req);
 }
 
+/* ── parse_qs / qs_get ───────────────────────────────────────────────────── */
+
+static void test_qs_single_param() {
+  TEST(qs_single_param);
+
+  RequestParam params[CERV_MAX_REQ_PARAMS] = {0};
+  int count = parse_qs(params, "/search?q=hello");
+
+  ASSERT_INT_EQ(count, 1, "should parse one param");
+  ASSERT_STR_EQ(params[0].key, "q", "key should be q");
+  ASSERT_STR_EQ(params[0].value, "hello", "value should be hello");
+}
+
+static void test_qs_multiple_params() {
+  TEST(qs_multiple_params);
+
+  RequestParam params[CERV_MAX_REQ_PARAMS] = {0};
+  int count = parse_qs(params, "/path?a=1&b=2&c=3");
+
+  ASSERT_INT_EQ(count, 3, "should parse three params");
+  ASSERT_STR_EQ(params[0].key, "a", "first key should be a");
+  ASSERT_STR_EQ(params[0].value, "1", "first value should be 1");
+  ASSERT_STR_EQ(params[1].key, "b", "second key should be b");
+  ASSERT_STR_EQ(params[1].value, "2", "second value should be 2");
+  ASSERT_STR_EQ(params[2].key, "c", "third key should be c");
+  ASSERT_STR_EQ(params[2].value, "3", "third value should be 3");
+}
+
+static void test_qs_no_query_string() {
+  TEST(qs_no_query_string);
+
+  RequestParam params[CERV_MAX_REQ_PARAMS] = {0};
+  int count = parse_qs(params, "/hello");
+
+  ASSERT_INT_EQ(count, 0, "no query string should return 0");
+}
+
+static void test_qs_empty_after_question_mark() {
+  TEST(qs_empty_after_question_mark);
+
+  RequestParam params[CERV_MAX_REQ_PARAMS] = {0};
+  int count = parse_qs(params, "/hello?");
+
+  ASSERT_INT_EQ(count, 0, "bare ? should return 0");
+}
+
+static void test_qs_empty_value() {
+  TEST(qs_empty_value);
+
+  RequestParam params[CERV_MAX_REQ_PARAMS] = {0};
+  int count = parse_qs(params, "/path?key=");
+
+  ASSERT_INT_EQ(count, 1, "should parse param with empty value");
+  ASSERT_STR_EQ(params[0].key, "key", "key should be key");
+  ASSERT_STR_EQ(params[0].value, "", "value should be empty string");
+}
+
+static void test_qs_malformed_no_equals() {
+  TEST(qs_malformed_no_equals);
+
+  RequestParam params[CERV_MAX_REQ_PARAMS] = {0};
+  int count = parse_qs(params, "/path?keyonly");
+
+  ASSERT_INT_EQ(count, -1, "key without = should return -1");
+}
+
+static void test_qs_malformed_empty_key() {
+  TEST(qs_malformed_empty_key);
+
+  RequestParam params[CERV_MAX_REQ_PARAMS] = {0};
+  int count = parse_qs(params, "/path?=value");
+
+  ASSERT_INT_EQ(count, -1, "empty key should return -1");
+}
+
+static void test_qs_cap_at_max_params() {
+  TEST(qs_cap_at_max_params);
+
+  /* build ?k0=0&k1=1&...&k19=19 — 20 params, cap is 16 */
+  char qs[512] = "/path?";
+  for (int i = 0; i < 20; i++) {
+    char pair[16];
+    snprintf(pair, sizeof(pair), "k%d=%d%s", i, i, i < 19 ? "&" : "");
+    strncat(qs, pair, sizeof(qs) - strlen(qs) - 1);
+  }
+
+  RequestParam params[CERV_MAX_REQ_PARAMS] = {0};
+  int count = parse_qs(params, qs);
+
+  ASSERT_INT_EQ(count, CERV_MAX_REQ_PARAMS, "should cap at CERV_MAX_REQ_PARAMS");
+}
+
+static void test_qs_get_found() {
+  TEST(qs_get_found);
+
+  RequestParam params[CERV_MAX_REQ_PARAMS] = {0};
+  parse_qs(params, "/path?foo=bar&baz=qux");
+
+  const char *val = qs_get(params, "baz");
+  ASSERT_STR_EQ(val, "qux", "qs_get should return value for existing key");
+}
+
+static void test_qs_get_not_found() {
+  TEST(qs_get_not_found);
+
+  RequestParam params[CERV_MAX_REQ_PARAMS] = {0};
+  parse_qs(params, "/path?foo=bar");
+
+  const char *val = qs_get(params, "missing");
+  ASSERT_NULL(val, "qs_get should return NULL for missing key");
+}
+
+/* ── headers ─────────────────────────────────────────────────────────────── */
+
+static void test_headers_single() {
+  TEST(headers_single);
+
+  const char *raw = "GET / HTTP/1.1\r\nHost: localhost\r\n\r\n";
+  CervRequest *req = parse_req(raw, strlen(raw));
+
+  ASSERT_NOT_NULL(req, "should parse request");
+  ASSERT_INT_EQ((int)req->headers_count, 1, "should have one header");
+  ASSERT_STR_EQ(req->headers[0].key, "Host", "header key should be Host");
+  ASSERT_STR_EQ(req->headers[0].value, "localhost", "header value should be localhost");
+
+  close_req(req);
+}
+
+static void test_headers_multiple() {
+  TEST(headers_multiple);
+
+  const char *raw = "GET / HTTP/1.1\r\n"
+                    "Host: localhost\r\n"
+                    "Accept: text/plain\r\n"
+                    "Connection: close\r\n\r\n";
+  CervRequest *req = parse_req(raw, strlen(raw));
+
+  ASSERT_NOT_NULL(req, "should parse request");
+  ASSERT_INT_EQ((int)req->headers_count, 3, "should have three headers");
+  ASSERT_STR_EQ(req->headers[1].key, "Accept", "second key should be Accept");
+  ASSERT_STR_EQ(req->headers[1].value, "text/plain", "second value should be text/plain");
+
+  close_req(req);
+}
+
+static void test_headers_post_with_content_type() {
+  TEST(headers_post_with_content_type);
+
+  const char *raw = "POST /submit HTTP/1.1\r\n"
+                    "Host: localhost\r\n"
+                    "Content-Type: application/json\r\n"
+                    "Content-Length: 2\r\n\r\n{}";
+  CervRequest *req = parse_req(raw, strlen(raw));
+
+  ASSERT_NOT_NULL(req, "should parse POST with content-type header");
+  ASSERT_INT_EQ((int)req->headers_count, 3, "should have three headers");
+  ASSERT_STR_EQ(req->headers[1].key, "Content-Type", "key should be Content-Type");
+  ASSERT_STR_EQ(req->headers[1].value, "application/json", "value should be application/json");
+
+  close_req(req);
+}
+
 /* ── check_done ─────────────────────────────────────────────────────────── */
 
 static void test_check_done_complete() {
@@ -246,6 +408,19 @@ int main(void) {
   test_parse_content_length_mismatch();
   test_parse_root_path();
   test_parse_post_empty_body();
+  test_qs_single_param();
+  test_qs_multiple_params();
+  test_qs_no_query_string();
+  test_qs_empty_after_question_mark();
+  test_qs_empty_value();
+  test_qs_malformed_no_equals();
+  test_qs_malformed_empty_key();
+  test_qs_cap_at_max_params();
+  test_qs_get_found();
+  test_qs_get_not_found();
+  test_headers_single();
+  test_headers_multiple();
+  test_headers_post_with_content_type();
   test_check_done_complete();
   test_check_done_partial();
   test_check_done_malformed();

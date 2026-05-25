@@ -110,5 +110,5 @@ int cerv_run(CervServer *s) {
   freeaddrinfo(res);
   close(socket_d);
 
-  return CERV_DEF_RET_SUCCESS;
+  return CERV_DEF_RET_OK;
 }

@@ -14,7 +14,7 @@ int handle_on_url(llhttp_t *p, const char *at, size_t len) {
   req->path_len += len;
   req->path[req->path_len] = '\0';
 
-  return CERV_DEF_RET_SUCCESS;
+  return CERV_DEF_RET_OK;
 }
 
 int handle_on_body(llhttp_t *p, const char *at, size_t len) {
@@ -25,7 +25,7 @@ int handle_on_body(llhttp_t *p, const char *at, size_t len) {
   req->body_len += len;
   req->body[req->body_len] = '\0';
 
-  return CERV_DEF_RET_SUCCESS;
+  return CERV_DEF_RET_OK;
 }
 
 int handle_on_msg_complete(llhttp_t *p) {
@@ -34,7 +34,19 @@ int handle_on_msg_complete(llhttp_t *p) {
 
   p->data = done;
 
-  return CERV_DEF_RET_SUCCESS;
+  return CERV_DEF_RET_OK;
+}
+
+int handle_on_header_field(llhttp_t *p, const char *field, size_t len) {
+  CervRequest *req = p->data;
+  req->headers[req->headers_count].key = strndup(field, len);
+  return CERV_DEF_RET_OK;
+}
+
+int handle_on_header_value(llhttp_t *p, const char *value, size_t len) {
+  CervRequest *req = p->data;
+  req->headers[req->headers_count++].value = strndup(value, len);
+  return CERV_DEF_RET_OK;
 }
 
 CervRequest *parse_req(const char *body, size_t len) {
@@ -45,6 +57,8 @@ CervRequest *parse_req(const char *body, size_t len) {
   llhttp_settings_init(&settings);
   settings.on_url = handle_on_url;
   settings.on_body = handle_on_body;
+  settings.on_header_field = handle_on_header_field;
+  settings.on_header_value = handle_on_header_value;
 
   llhttp_init(&parser, HTTP_BOTH, &settings);
   parser.data = &parsed_r;
@@ -92,47 +106,43 @@ void close_req(CervRequest *r) {
 }
 
 int parse_qs(RequestParam *params, const char *qs) {
-  char *tmp = (char *)qs;
-  char *buf = tmp;
-  size_t idx = 0;
+  const char *p = strchr(qs, '?');
 
-  while (*tmp != '?') {
-    tmp++;
-  }
-  tmp++; // +1 to skip '?'
-  buf = tmp;
+  // no params
+  if (p == NULL)
+    return 0;
+  p++; // skip '?'
+  if (*p == '\0')
+    return 0;
 
-  if (tmp >= qs + strlen(qs)) {
-    return -1;
-  }
+  int count = 0;
 
-  while (*tmp++) {
-    // extract key
-    if (*tmp == '=') {
-      char *key = malloc(tmp - buf + 1);
-      key[0] = '\0';
-      strncpy(key, buf, (ptrdiff_t)(tmp - buf));
+  while (*p && count < CERV_MAX_REQ_PARAMS) {
+    const char *eq = strchr(p, '=');
+    const char *amp = strchr(p, '&');
 
-      params[idx].key = key;
-      buf = tmp + 1;
-      tmp++;
-    }
+    // malformed URL params
+    if (eq == NULL || (amp != NULL && amp < eq))
+      return -1;
+    if (eq == p)
+      return -1;
 
-    // extract value
-    if (*tmp == '\0' || *tmp == '&') {
-      char *val = malloc(tmp - buf + 1);
-      val[0] = '\0';
-      strncpy(val, buf, (ptrdiff_t)(tmp - buf));
+    params[count].key = strndup(p, eq - p);
+    p = eq + 1; // skip past '='
 
-      params[idx].value = val;
-      buf = tmp + 1;
-      idx++;
-      if (*tmp != '\0')
-        tmp++;
-    }
+    amp = strchr(p, '&');
+    size_t val_len = amp ? (size_t)(amp - p) : strlen(p);
+    params[count].value = strndup(p, val_len);
+    count++;
+
+    if (amp == NULL)
+      break;
+    p = amp + 1; // skip past '&'
+    if (*p == '\0')
+      break;
   }
 
-  return 0;
+  return count;
 }
 
 const char *qs_get(RequestParam *params, const char *key) {
@@ -145,4 +155,3 @@ const char *qs_get(RequestParam *params, const char *key) {
 
   return NULL;
 }
-

@@ -30,7 +30,7 @@ int cerv_router_add(CervRouter *r, const char *method, const char *path,
   r->routes[count++] = route;
   r->count = count;
 
-  return CERV_DEF_RET_SUCCESS;
+  return CERV_DEF_RET_OK;
 }
 
 CervHandler *cerv_router_match(CervRouter *r, const char *method,
