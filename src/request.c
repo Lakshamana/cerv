@@ -90,3 +90,59 @@ void close_req(CervRequest *r) {
   free(r->path);
   free(r);
 }
+
+int parse_qs(RequestParam *params, const char *qs) {
+  char *tmp = (char *)qs;
+  char *buf = tmp;
+  size_t idx = 0;
+
+  while (*tmp != '?') {
+    tmp++;
+  }
+  tmp++; // +1 to skip '?'
+  buf = tmp;
+
+  if (tmp >= qs + strlen(qs)) {
+    return -1;
+  }
+
+  while (*tmp++) {
+    // extract key
+    if (*tmp == '=') {
+      char *key = malloc(tmp - buf + 1);
+      key[0] = '\0';
+      strncpy(key, buf, (ptrdiff_t)(tmp - buf));
+
+      params[idx].key = key;
+      buf = tmp + 1;
+      tmp++;
+    }
+
+    // extract value
+    if (*tmp == '\0' || *tmp == '&') {
+      char *val = malloc(tmp - buf + 1);
+      val[0] = '\0';
+      strncpy(val, buf, (ptrdiff_t)(tmp - buf));
+
+      params[idx].value = val;
+      buf = tmp + 1;
+      idx++;
+      if (*tmp != '\0')
+        tmp++;
+    }
+  }
+
+  return 0;
+}
+
+const char *qs_get(RequestParam *params, const char *key) {
+  for (int i = 0; params[i].key != NULL && i < CERV_MAX_REQ_PARAMS; i++) {
+    register RequestParam param = params[i];
+    if (strcmp(key, param.key) == 0) {
+      return param.value;
+    }
+  }
+
+  return NULL;
+}
+
