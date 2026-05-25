@@ -85,6 +85,13 @@ int cerv_run(CervServer *s) {
     }
 
     CervRequest *req = parse_req(reqbuf, buf_s);
+    if (req == NULL) {
+      fprintf(stderr, "malformed request\n");
+      free(reqbuf);
+      close(clfd);
+      continue;
+    }
+
     CervResponse *res = cerv_response_new();
 
     CervHandler *handler = cerv_router_match(s->router, req->method, req->path);
