@@ -45,9 +45,43 @@ static void test_parse_query_string() {
   CervRequest *req = parse_req(raw, strlen(raw));
 
   ASSERT_NOT_NULL(req, "should parse request with query string");
-  ASSERT_STR_EQ(req->path, "/search?q=foo", "path should include query string");
+  ASSERT_STR_EQ(req->path, "/search", "path should be stripped of query string");
+  ASSERT_INT_EQ((int)req->query_string_count, 1, "should have one query param");
+  ASSERT_STR_EQ(req->query_string_params[0].key, "q", "param key should be q");
+  ASSERT_STR_EQ(req->query_string_params[0].value, "foo", "param value should be foo");
 
   close_req(req);
+}
+
+static void test_parse_req_qs_multiple_params() {
+  TEST(parse_req_qs_multiple_params);
+
+  const char *raw = "GET /route?a=1&b=2 HTTP/1.1\r\nHost: localhost\r\n\r\n";
+  CervRequest *req = parse_req(raw, strlen(raw));
+
+  ASSERT_NOT_NULL(req, "should parse request with multiple query params");
+  ASSERT_STR_EQ(req->path, "/route", "path should not contain query string");
+  ASSERT_INT_EQ((int)req->query_string_count, 2, "should have two query params");
+  ASSERT_STR_EQ(req->query_string_params[0].key, "a", "first key should be a");
+  ASSERT_STR_EQ(req->query_string_params[0].value, "1", "first value should be 1");
+  ASSERT_STR_EQ(req->query_string_params[1].key, "b", "second key should be b");
+  ASSERT_STR_EQ(req->query_string_params[1].value, "2", "second value should be 2");
+
+  const char *val = qs_get(req->query_string_params, "b");
+  ASSERT_STR_EQ(val, "2", "qs_get should find param populated by parse_req");
+
+  close_req(req);
+}
+
+static void test_parse_req_malformed_qs() {
+  TEST(parse_req_malformed_qs);
+
+  // key without '=' — parse_qs returns -1, handle_on_url_complete propagates
+  // it, llhttp sets HPE_USER and aborts, so parse_req should return NULL
+  const char *raw = "GET /path?keyonly HTTP/1.1\r\nHost: localhost\r\n\r\n";
+  CervRequest *req = parse_req(raw, strlen(raw));
+
+  ASSERT_NULL(req, "malformed query string should return NULL from parse_req");
 }
 
 static void test_parse_multi_segment_path() {
@@ -399,6 +433,8 @@ int main(void) {
   test_parse_get_no_body();
   test_parse_post_with_body();
   test_parse_query_string();
+  test_parse_req_qs_multiple_params();
+  test_parse_req_malformed_qs();
   test_parse_multi_segment_path();
   test_parse_large_url();
   test_parse_large_body();

@@ -26,7 +26,7 @@ CervServer *cerv_new(int port, int max_workers) {
 int cerv_run(CervServer *s) {
   int status, socket_d;
   struct addrinfo hint;
-  struct addrinfo *res;
+  struct addrinfo *result;
 
   // NOTE: APUE, Ch. 16, pg. 600: remaining integer fields must be set to 0
   memset(&hint, 0, sizeof(hint));
@@ -36,28 +36,27 @@ int cerv_run(CervServer *s) {
 
   char port_str[6];
   snprintf(port_str, sizeof(port_str), "%d", s->port);
-  if ((status = getaddrinfo(NULL, port_str, &hint, &res)) != 0) {
+  if ((status = getaddrinfo(NULL, port_str, &hint, &result)) != 0) {
     fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
     return CERV_DEF_RET_ERROR;
   }
 
-  socket_d = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+  socket_d = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
   if (socket_d == -1) {
     fprintf(stderr, "error allocating socket: %d", errno);
-    freeaddrinfo(res);
+    freeaddrinfo(result);
     return CERV_DEF_RET_ERROR;
   }
 
   int opt = 1;
   setsockopt(socket_d, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
-  if ((bind(socket_d, res->ai_addr, res->ai_addrlen)) != 0) {
+  if ((bind(socket_d, result->ai_addr, result->ai_addrlen)) != 0) {
     fprintf(stderr, "error binding to socket err: %d\n", errno);
-    freeaddrinfo(res);
+    freeaddrinfo(result);
     close(socket_d);
     return CERV_DEF_RET_ERROR;
   }
-  freeaddrinfo(res);
 
   if (listen(socket_d, CERV_DEF_MAX_BACKLOG) == -1) {
     fprintf(stderr, "error listening to the port=%d: %d", s->port, errno);
@@ -109,12 +108,13 @@ int cerv_run(CervServer *s) {
     send(clfd, resp_body, len, 0);
 
     free(reqbuf);
+    free(resp_body);
     close_req(req);
     close_res(res);
     close(clfd);
   }
 
-  freeaddrinfo(res);
+  freeaddrinfo(result);
   close(socket_d);
 
   return CERV_DEF_RET_OK;

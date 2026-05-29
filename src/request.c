@@ -28,6 +28,25 @@ int handle_on_body(llhttp_t *p, const char *at, size_t len) {
   return CERV_DEF_RET_OK;
 }
 
+int handle_on_url_complete(llhttp_t *p) {
+  CervRequest *req = p->data;
+
+  int qs_result = parse_qs(req->query_string_params, req->path);
+  if (qs_result == -1) {
+    return CERV_DEF_RET_ERROR;
+  }
+
+  if (qs_result > 0) {
+    char *qm_at = strchr(req->path, '?');
+    size_t len = qm_at - req->path;
+    req->path = realloc(req->path, len + 1);
+    req->path[len] = '\0';
+    req->query_string_count = qs_result;
+  }
+
+  return CERV_DEF_RET_OK;
+}
+
 int handle_on_msg_complete(llhttp_t *p) {
   int *done = malloc(sizeof(int));
   *done = 1;
@@ -56,6 +75,7 @@ CervRequest *parse_req(const char *body, size_t len) {
 
   llhttp_settings_init(&settings);
   settings.on_url = handle_on_url;
+  settings.on_url_complete = handle_on_url_complete;
   settings.on_body = handle_on_body;
   settings.on_header_field = handle_on_header_field;
   settings.on_header_value = handle_on_header_value;
@@ -100,6 +120,16 @@ void check_done(const char *chunk, size_t s, int *done) {
 }
 
 void close_req(CervRequest *r) {
+  for (size_t i = 0; i < r->query_string_count; i++) {
+    free((char *)r->query_string_params[i].key);
+    free((char *)r->query_string_params[i].value);
+  }
+
+  for (size_t i = 0 ; i < r->headers_count; i++) {
+    free((char *)r->headers[i].key);
+    free((char *)r->headers[i].value);
+  }
+
   free(r->body);
   free(r->path);
   free(r);
