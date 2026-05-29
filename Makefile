@@ -12,7 +12,7 @@ clean:
 	rm -rf build
 
 test: build
-	ctest --test-dir build -V -R $(TEST_NAME)
+	ctest --test-dir build -V $(if $(TEST_NAME),-R $(TEST_NAME))
 
 test-all: build
 	ctest --test-dir build -V
