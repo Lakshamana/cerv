@@ -3,12 +3,20 @@
 #include <stdlib.h>
 #include <string.h>
 
-CervResponse *cerv_response_new() { return malloc(sizeof(CervResponse)); }
+CervResponse *cerv_response_new() { return calloc(1, sizeof(CervResponse)); }
 
 void close_res(CervResponse *r) {
-  free(r->content_type);
-  free(r->body);
-  free(r);
+  if (r->content_type != NULL) {
+    free(r->content_type);
+  }
+
+  if (r->body != NULL) {
+    free(r->body);
+  }
+
+  if (r != NULL) {
+    free(r);
+  }
 }
 
 void cerv_response_set_body(CervResponse *res, const char *body) {
@@ -20,6 +28,13 @@ void cerv_response_set_body(CervResponse *res, const char *body) {
 
 void cerv_response_set_status(CervResponse *res, int status) {
   res->status = status;
+}
+
+void cerv_response_set_content_type(CervResponse *res, const char* ctype) {
+  char *t = malloc(strlen(ctype) + 1);
+  t[0] = '\0';
+  strcpy(t, ctype);
+  res->content_type = t;
 }
 
 char *cerv_response_serialize(CervResponse *res) {

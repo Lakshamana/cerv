@@ -130,9 +130,17 @@ void close_req(CervRequest *r) {
     free((char *)r->headers[i].value);
   }
 
-  free(r->body);
-  free(r->path);
-  free(r);
+  if (r->body != NULL) {
+    free(r->body);
+  }
+
+  if (r->path != NULL) {
+    free(r->path);
+  }
+
+  if (r != NULL) {
+    free(r);
+  }
 }
 
 int parse_qs(RequestParam *params, const char *qs) {

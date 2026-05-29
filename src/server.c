@@ -14,7 +14,7 @@
 #include <unistd.h>
 
 CervServer *cerv_new(int port, int max_workers) {
-  CervServer *s = malloc(sizeof(CervServer));
+  CervServer *s = calloc(1, sizeof(CervServer));
   CervRouter *r = cerv_router_new();
   s->max_workers = max_workers;
   s->port = port;
@@ -102,8 +102,7 @@ int cerv_run(CervServer *s) {
     }
 
     char *resp_body = cerv_response_serialize(res);
-    int len;
-    len = strlen(resp_body);
+    int len = strlen(resp_body);
 
     send(clfd, resp_body, len, 0);
 
