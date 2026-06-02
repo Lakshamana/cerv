@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-#define CERV_MAX_REQ_HEADERS 128
+#define CERV_MAX_REQ_HEADERS 32
 #define CERV_MAX_REQ_PARAMS 16
 
 #include <stddef.h>

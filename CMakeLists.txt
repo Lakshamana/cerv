@@ -12,6 +12,7 @@ add_library(cerv_core STATIC
   src/request.c
   src/response.c
   src/task.c
+  src/arena.c
 )
 target_include_directories(cerv_core PUBLIC include)
 target_compile_options(cerv_core PRIVATE -Wall -Wextra -Wpedantic)
@@ -28,5 +29,8 @@ add_executable(hello examples/hello.c)
 target_link_libraries(hello PRIVATE cerv_core)
 target_include_directories(test_router PRIVATE include tests)
 target_include_directories(test_request PRIVATE include tests)
+add_executable(test_arena tests/unit/test_arena.c src/arena.c)
+target_include_directories(test_arena PRIVATE include tests)
 add_test(NAME test_router COMMAND test_router)
 add_test(NAME test_request COMMAND test_request)
+add_test(NAME test_arena COMMAND test_arena)

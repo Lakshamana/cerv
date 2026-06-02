@@ -1,15 +1,27 @@
 #ifndef CERV_RESPONSE_H
 #define CERV_RESPONSE_H
 
+#define CERV_MAX_RESPONSE_HEADERS 32
+
+#include <stddef.h>
+
 typedef struct {
-  int   status;       // HTTP status code
-  char *body;         // response body (heap-allocated by framework)
-  char *content_type; // e.g. "application/json"
+  const char *key;
+  const char *value;
+} ResponseHeader;
+
+typedef struct {
+  int             status;
+  size_t          headers_count;
+  ResponseHeader headers[CERV_MAX_RESPONSE_HEADERS];
+  char           *body;
+  char           *content_type;
 } CervResponse;
 
 CervResponse* cerv_response_new();
 void          cerv_response_set_body(CervResponse *res, const char *body);
 void          cerv_response_set_status(CervResponse *res, int status);
+void          cerv_response_set_header(CervResponse *res, const char* key, const char* value);
 void          close_res(CervResponse* res);
 char*         cerv_response_serialize(CervResponse* res);
 

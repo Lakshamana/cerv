@@ -1,11 +1,18 @@
 #include "cerv/response.h"
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+// TODO: replace with custom allocator
 CervResponse *cerv_response_new() { return calloc(1, sizeof(CervResponse)); }
 
 void close_res(CervResponse *r) {
+  for (size_t i = 0; i < r->headers_count; i++) {
+    free((char *)r->headers[i].key);
+    free((char *)r->headers[i].value);
+  }
+
   if (r->content_type != NULL) {
     free(r->content_type);
   }
@@ -20,6 +27,7 @@ void close_res(CervResponse *r) {
 }
 
 void cerv_response_set_body(CervResponse *res, const char *body) {
+  // TODO: replace with custom allocator
   char *b = malloc(strlen(body) + 1);
   b[0] = '\0';
   strcpy(b, body);
@@ -30,11 +38,19 @@ void cerv_response_set_status(CervResponse *res, int status) {
   res->status = status;
 }
 
-void cerv_response_set_content_type(CervResponse *res, const char* ctype) {
-  char *t = malloc(strlen(ctype) + 1);
-  t[0] = '\0';
-  strcpy(t, ctype);
-  res->content_type = t;
+void cerv_response_set_header(CervResponse *res, const char *key,
+                              const char *value) {
+  // TODO: replace with custom allocator
+  char *k = malloc(strlen(key) + 1);
+  k[0] = '\0';
+  strcpy(k, key);
+  res->headers[res->headers_count++].key = k;
+
+  // TODO: replace with custom allocator
+  char *v = malloc(strlen(value) + 1);
+  v[0] = '\0';
+  strcpy(v, value);
+  res->headers[res->headers_count].value = v;
 }
 
 char *cerv_response_serialize(CervResponse *res) {
