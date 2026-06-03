@@ -14,17 +14,17 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-CervServer *cerv_new(int port, int max_workers) {
-  CervServer *s = calloc(1, sizeof(CervServer));
+Cerv *cerv_new(int port) {
+  Cerv *s = calloc(1, sizeof(Cerv));
   CervRouter *r = cerv_router_new();
-  s->max_workers = max_workers;
+  s->workers = CERV_DEF_MIN_WORKERS;
   s->port = port;
   s->router = r;
 
   return s;
 }
 
-int cerv_run(CervServer *s) {
+int cerv_run(Cerv *s) {
   int status, socket_d;
   struct addrinfo hint;
   struct addrinfo *result;

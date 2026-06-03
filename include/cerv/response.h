@@ -25,7 +25,6 @@ CervResponse* cerv_response_new(Allocator a);
 void          cerv_response_set_body(CervResponse *res, const char *body);
 void          cerv_response_set_status(CervResponse *res, int status);
 void          cerv_response_set_header(CervResponse *res, const char* key, const char* value);
-void          close_res(CervResponse* res);
 char*         cerv_response_serialize(CervResponse* res);
 
 #endif // CERV_RESPONSE_H

@@ -12,25 +12,6 @@ CervResponse *cerv_response_new(Allocator a) {
   return resp;
 }
 
-void close_res(CervResponse *r) {
-  for (size_t i = 0; i < r->headers_count; i++) {
-    free((char *)r->headers[i].key);
-    free((char *)r->headers[i].value);
-  }
-
-  if (r->content_type != NULL) {
-    free(r->content_type);
-  }
-
-  if (r->body != NULL) {
-    free(r->body);
-  }
-
-  if (r != NULL) {
-    free(r);
-  }
-}
-
 void cerv_response_set_body(CervResponse *res, const char *body) {
   char *b = cerv_alloc(char, strlen(body) + 1, res->allocator);
   b[0] = '\0';
