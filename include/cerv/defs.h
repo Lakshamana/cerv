@@ -9,5 +9,6 @@
 #define CERV_DEF_MAX_BACKLOG         1024
 #define CERV_DEF_READ_CHUNK          4096
 #define CERV_DEF_ARENA_DEFAULT_SIZE  1048576
+#define CERV_DEF_DEFAULT_PROTOCOL    "HTTP/1.1"
 
 #endif // !_DEFS_H

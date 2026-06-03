@@ -1,3 +1,4 @@
+#include "cerv/arena.h"
 #include "cerv/request.h"
 #include "test.h"
 #include <stdio.h>
@@ -11,23 +12,25 @@ static int passed = 0, failed = 0;
 static void test_parse_get_no_body() {
   TEST(parse_get_no_body);
 
+  Arena *a = arena_new(4096);
   const char *raw = "GET /hello HTTP/1.1\r\nHost: localhost\r\n\r\n";
-  CervRequest *req = parse_req(raw, strlen(raw));
+  CervRequest *req = parse_req(raw, strlen(raw), arena_allocator(a));
 
   ASSERT_NOT_NULL(req, "should parse a valid GET request");
   ASSERT_STR_EQ(req->method, "GET", "method should be GET");
   ASSERT_STR_EQ(req->path, "/hello", "path should be /hello");
   ASSERT_NULL(req->body, "body should be NULL for GET with no body");
 
-  close_req(req);
+  close_req(a);
 }
 
 static void test_parse_post_with_body() {
   TEST(parse_post_with_body);
 
+  Arena *a = arena_new(4096);
   const char *raw = "POST /submit HTTP/1.1\r\nHost: localhost\r\n"
                     "Content-Length: 5\r\n\r\nhello";
-  CervRequest *req = parse_req(raw, strlen(raw));
+  CervRequest *req = parse_req(raw, strlen(raw), arena_allocator(a));
 
   ASSERT_NOT_NULL(req, "should parse a valid POST request");
   ASSERT_STR_EQ(req->method, "POST", "method should be POST");
@@ -35,14 +38,15 @@ static void test_parse_post_with_body() {
   ASSERT_STR_EQ(req->body, "hello", "body should be 'hello'");
   ASSERT_INT_EQ((int)req->body_len, 5, "body_len should be 5");
 
-  close_req(req);
+  close_req(a);
 }
 
 static void test_parse_query_string() {
   TEST(parse_query_string);
 
+  Arena *a = arena_new(4096);
   const char *raw = "GET /search?q=foo HTTP/1.1\r\nHost: localhost\r\n\r\n";
-  CervRequest *req = parse_req(raw, strlen(raw));
+  CervRequest *req = parse_req(raw, strlen(raw), arena_allocator(a));
 
   ASSERT_NOT_NULL(req, "should parse request with query string");
   ASSERT_STR_EQ(req->path, "/search", "path should be stripped of query string");
@@ -50,14 +54,15 @@ static void test_parse_query_string() {
   ASSERT_STR_EQ(req->query_string_params[0].key, "q", "param key should be q");
   ASSERT_STR_EQ(req->query_string_params[0].value, "foo", "param value should be foo");
 
-  close_req(req);
+  close_req(a);
 }
 
 static void test_parse_req_qs_multiple_params() {
   TEST(parse_req_qs_multiple_params);
 
+  Arena *a = arena_new(4096);
   const char *raw = "GET /route?a=1&b=2 HTTP/1.1\r\nHost: localhost\r\n\r\n";
-  CervRequest *req = parse_req(raw, strlen(raw));
+  CervRequest *req = parse_req(raw, strlen(raw), arena_allocator(a));
 
   ASSERT_NOT_NULL(req, "should parse request with multiple query params");
   ASSERT_STR_EQ(req->path, "/route", "path should not contain query string");
@@ -70,30 +75,32 @@ static void test_parse_req_qs_multiple_params() {
   const char *val = qs_get(req->query_string_params, "b");
   ASSERT_STR_EQ(val, "2", "qs_get should find param populated by parse_req");
 
-  close_req(req);
+  close_req(a);
 }
 
 static void test_parse_req_malformed_qs() {
   TEST(parse_req_malformed_qs);
 
-  // key without '=' — parse_qs returns -1, handle_on_url_complete propagates
-  // it, llhttp sets HPE_USER and aborts, so parse_req should return NULL
+  Arena *a = arena_new(4096);
   const char *raw = "GET /path?keyonly HTTP/1.1\r\nHost: localhost\r\n\r\n";
-  CervRequest *req = parse_req(raw, strlen(raw));
+  CervRequest *req = parse_req(raw, strlen(raw), arena_allocator(a));
 
   ASSERT_NULL(req, "malformed query string should return NULL from parse_req");
+
+  close_req(a);
 }
 
 static void test_parse_multi_segment_path() {
   TEST(parse_multi_segment_path);
 
+  Arena *a = arena_new(4096);
   const char *raw = "GET /api/v1/users HTTP/1.1\r\nHost: localhost\r\n\r\n";
-  CervRequest *req = parse_req(raw, strlen(raw));
+  CervRequest *req = parse_req(raw, strlen(raw), arena_allocator(a));
 
   ASSERT_NOT_NULL(req, "should parse request with multi-segment path");
   ASSERT_STR_EQ(req->path, "/api/v1/users", "path should be /api/v1/users");
 
-  close_req(req);
+  close_req(a);
 }
 
 static void test_parse_large_url() {
@@ -108,7 +115,8 @@ static void test_parse_large_url() {
   int len = snprintf(raw, LARGE_URL_LEN + 64,
                      "GET /%s HTTP/1.1\r\nHost: localhost\r\n\r\n", url);
 
-  CervRequest *req = parse_req(raw, len);
+  Arena *a = arena_new(4096);
+  CervRequest *req = parse_req(raw, len, arena_allocator(a));
   ASSERT_NOT_NULL(req, "should parse request with large URL");
   ASSERT_INT_EQ((int)req->path_len, LARGE_URL_LEN + 1, "path_len should match");
 
@@ -116,7 +124,7 @@ static void test_parse_large_url() {
   snprintf(expected, LARGE_URL_LEN + 2, "/%s", url);
   ASSERT_STR_EQ(req->path, expected, "large path should be fully preserved");
 
-  close_req(req);
+  close_req(a);
   free(raw);
   free(expected);
 #undef LARGE_URL_LEN
@@ -136,12 +144,13 @@ static void test_parse_large_body() {
                      "Content-Length: %d\r\n\r\n%s",
                      LARGE_BODY_LEN, body);
 
-  CervRequest *req = parse_req(raw, len);
+  Arena *a = arena_new(4096);
+  CervRequest *req = parse_req(raw, len, arena_allocator(a));
   ASSERT_NOT_NULL(req, "should parse request with large body");
   ASSERT_INT_EQ((int)req->body_len, LARGE_BODY_LEN, "body_len should match");
   ASSERT_STR_EQ(req->body, body, "large body should be fully preserved");
 
-  close_req(req);
+  close_req(a);
   free(body);
   free(raw);
 #undef LARGE_BODY_LEN
@@ -163,76 +172,80 @@ static void test_parse_method_variants() {
   };
 
   for (int i = 0; i < 3; i++) {
-    CervRequest *req = parse_req(cases[i].raw, strlen(cases[i].raw));
+    Arena *a = arena_new(4096);
+    CervRequest *req = parse_req(cases[i].raw, strlen(cases[i].raw), arena_allocator(a));
     ASSERT_NOT_NULL(req, "should parse request");
     ASSERT_STR_EQ(req->method, cases[i].method, "should match method");
-    close_req(req);
+    close_req(a);
   }
 }
 
 static void test_parse_malformed() {
   TEST(parse_malformed);
 
+  Arena *a = arena_new(4096);
   const char *raw = "!nvalid request\r\n\r\n";
-  CervRequest *req = parse_req(raw, strlen(raw));
+  CervRequest *req = parse_req(raw, strlen(raw), arena_allocator(a));
 
   ASSERT_NULL(req, "should return NULL for malformed request");
+
+  close_req(a);
 }
 
 static void test_parse_truncated() {
   TEST(parse_truncated);
 
-  // truncated before \r\n\r\n: llhttp returns HPE_OK (incomplete, not an
-  // error), so parse_req returns a partial CervRequest — the key is it doesn't
-  // crash
+  Arena *a = arena_new(4096);
   const char *raw = "GET / HTTP/1.1\r\nHost: local";
-  CervRequest *req = parse_req(raw, strlen(raw));
+  CervRequest *req = parse_req(raw, strlen(raw), arena_allocator(a));
 
   ASSERT_NOT_NULL(req, "truncated request returns partial result, not NULL");
   ASSERT_STR_EQ(req->path, "/", "path should be parsed before truncation");
 
-  close_req(req);
+  close_req(a);
 }
 
 static void test_parse_content_length_mismatch() {
   TEST(parse_content_length_mismatch);
 
-  // CL claims 100 bytes but body is only 9 — no crash, partial body stored
+  Arena *a = arena_new(4096);
   const char *raw = "POST / HTTP/1.1\r\nHost: localhost\r\n"
                     "Content-Length: 100\r\n\r\nshortbody";
-  CervRequest *req = parse_req(raw, strlen(raw));
+  CervRequest *req = parse_req(raw, strlen(raw), arena_allocator(a));
 
   ASSERT_NOT_NULL(req, "should not crash on content-length mismatch");
   ASSERT_INT_EQ((int)req->body_len, 9,
                 "should store only the received body bytes");
 
-  close_req(req);
+  close_req(a);
 }
 
 static void test_parse_root_path() {
   TEST(parse_root_path);
 
+  Arena *a = arena_new(4096);
   const char *raw = "GET / HTTP/1.1\r\nHost: localhost\r\n\r\n";
-  CervRequest *req = parse_req(raw, strlen(raw));
+  CervRequest *req = parse_req(raw, strlen(raw), arena_allocator(a));
 
   ASSERT_NOT_NULL(req, "should parse request with root path");
   ASSERT_STR_EQ(req->path, "/", "path should be /");
 
-  close_req(req);
+  close_req(a);
 }
 
 static void test_parse_post_empty_body() {
   TEST(parse_post_empty_body);
 
+  Arena *a = arena_new(4096);
   const char *raw = "POST /submit HTTP/1.1\r\nHost: localhost\r\n"
                     "Content-Length: 0\r\n\r\n";
-  CervRequest *req = parse_req(raw, strlen(raw));
+  CervRequest *req = parse_req(raw, strlen(raw), arena_allocator(a));
 
   ASSERT_NOT_NULL(req, "should parse POST with Content-Length: 0");
   ASSERT_NULL(req->body, "body should be NULL when Content-Length is 0");
   ASSERT_INT_EQ((int)req->body_len, 0, "body_len should be 0");
 
-  close_req(req);
+  close_req(a);
 }
 
 /* ── parse_qs / qs_get ───────────────────────────────────────────────────── */
@@ -313,7 +326,6 @@ static void test_qs_malformed_empty_key() {
 static void test_qs_cap_at_max_params() {
   TEST(qs_cap_at_max_params);
 
-  /* build ?k0=0&k1=1&...&k19=19 — 20 params, cap is 16 */
   char qs[512] = "/path?";
   for (int i = 0; i < 20; i++) {
     char pair[16];
@@ -352,49 +364,52 @@ static void test_qs_get_not_found() {
 static void test_headers_single() {
   TEST(headers_single);
 
+  Arena *a = arena_new(4096);
   const char *raw = "GET / HTTP/1.1\r\nHost: localhost\r\n\r\n";
-  CervRequest *req = parse_req(raw, strlen(raw));
+  CervRequest *req = parse_req(raw, strlen(raw), arena_allocator(a));
 
   ASSERT_NOT_NULL(req, "should parse request");
   ASSERT_INT_EQ((int)req->headers_count, 1, "should have one header");
   ASSERT_STR_EQ(req->headers[0].key, "Host", "header key should be Host");
   ASSERT_STR_EQ(req->headers[0].value, "localhost", "header value should be localhost");
 
-  close_req(req);
+  close_req(a);
 }
 
 static void test_headers_multiple() {
   TEST(headers_multiple);
 
+  Arena *a = arena_new(4096);
   const char *raw = "GET / HTTP/1.1\r\n"
                     "Host: localhost\r\n"
                     "Accept: text/plain\r\n"
                     "Connection: close\r\n\r\n";
-  CervRequest *req = parse_req(raw, strlen(raw));
+  CervRequest *req = parse_req(raw, strlen(raw), arena_allocator(a));
 
   ASSERT_NOT_NULL(req, "should parse request");
   ASSERT_INT_EQ((int)req->headers_count, 3, "should have three headers");
   ASSERT_STR_EQ(req->headers[1].key, "Accept", "second key should be Accept");
   ASSERT_STR_EQ(req->headers[1].value, "text/plain", "second value should be text/plain");
 
-  close_req(req);
+  close_req(a);
 }
 
 static void test_headers_post_with_content_type() {
   TEST(headers_post_with_content_type);
 
+  Arena *a = arena_new(4096);
   const char *raw = "POST /submit HTTP/1.1\r\n"
                     "Host: localhost\r\n"
                     "Content-Type: application/json\r\n"
                     "Content-Length: 2\r\n\r\n{}";
-  CervRequest *req = parse_req(raw, strlen(raw));
+  CervRequest *req = parse_req(raw, strlen(raw), arena_allocator(a));
 
   ASSERT_NOT_NULL(req, "should parse POST with content-type header");
   ASSERT_INT_EQ((int)req->headers_count, 3, "should have three headers");
   ASSERT_STR_EQ(req->headers[1].key, "Content-Type", "key should be Content-Type");
   ASSERT_STR_EQ(req->headers[1].value, "application/json", "value should be application/json");
 
-  close_req(req);
+  close_req(a);
 }
 
 /* ── check_done ─────────────────────────────────────────────────────────── */

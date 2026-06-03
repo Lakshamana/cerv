@@ -1,6 +1,7 @@
 #ifndef CERV_REQUEST_H
 #define CERV_REQUEST_H
 
+#include "cerv/arena.h"
 #include <stdlib.h>
 #include <string.h>
 #define CERV_MAX_REQ_HEADERS 32
@@ -30,10 +31,10 @@ typedef struct {
   size_t        query_string_count;
 } CervRequest;
 
-CervRequest *parse_req(const char *body, size_t len);
-void close_req(CervRequest *r);
-void check_done(const char *chunk, size_t s, int *done);
-int parse_qs(RequestParam *params, const char *qs);
-const char *qs_get(RequestParam *params, const char *key);
+CervRequest* parse_req(const char *body, size_t len, Allocator a);
+void         close_req(Arena* a);
+void         check_done(const char *chunk, size_t s, int *done);
+int          parse_qs(RequestParam *params, const char *qs);
+const char*  qs_get(RequestParam *params, const char *key);
 
 #endif // CERV_REQUEST_H

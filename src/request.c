@@ -1,4 +1,5 @@
 #include "cerv/request.h"
+#include "cerv/arena.h"
 #include "cerv/defs.h"
 #include "llhttp.h"
 #include <stddef.h>
@@ -68,7 +69,7 @@ int handle_on_header_value(llhttp_t *p, const char *value, size_t len) {
   return CERV_DEF_RET_OK;
 }
 
-CervRequest *parse_req(const char *body, size_t len) {
+CervRequest *parse_req(const char *body, size_t len, Allocator a) {
   llhttp_t parser;
   llhttp_settings_t settings;
   CervRequest parsed_r = {0};
@@ -90,7 +91,7 @@ CervRequest *parse_req(const char *body, size_t len) {
     return NULL;
   }
 
-  CervRequest *req = malloc(sizeof(CervRequest));
+  CervRequest *req = cerv_make(CervRequest, a);
   memcpy(req, parser.data, sizeof(CervRequest));
 
   req->method = llhttp_method_name(llhttp_get_method(&parser));
@@ -119,28 +120,8 @@ void check_done(const char *chunk, size_t s, int *done) {
   *done = *(int *)parser.data;
 }
 
-void close_req(CervRequest *r) {
-  for (size_t i = 0; i < r->query_string_count; i++) {
-    free((char *)r->query_string_params[i].key);
-    free((char *)r->query_string_params[i].value);
-  }
-
-  for (size_t i = 0 ; i < r->headers_count; i++) {
-    free((char *)r->headers[i].key);
-    free((char *)r->headers[i].value);
-  }
-
-  if (r->body != NULL) {
-    free(r->body);
-  }
-
-  if (r->path != NULL) {
-    free(r->path);
-  }
-
-  if (r != NULL) {
-    free(r);
-  }
+void close_req(Arena *a) {
+  arena_destroy(a);
 }
 
 int parse_qs(RequestParam *params, const char *qs) {

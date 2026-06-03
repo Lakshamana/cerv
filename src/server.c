@@ -1,3 +1,4 @@
+#include "cerv/arena.h"
 #include "cerv/cerv.h"
 #include "cerv/defs.h"
 #include "cerv/handler.h"
@@ -41,7 +42,8 @@ int cerv_run(CervServer *s) {
     return CERV_DEF_RET_ERROR;
   }
 
-  socket_d = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+  socket_d =
+      socket(result->ai_family, result->ai_socktype, result->ai_protocol);
   if (socket_d == -1) {
     fprintf(stderr, "error allocating socket: %d", errno);
     freeaddrinfo(result);
@@ -83,7 +85,10 @@ int cerv_run(CervServer *s) {
       reqbuf = realloc(reqbuf, buf_s + CERV_DEF_READ_CHUNK);
     }
 
-    CervRequest *req = parse_req(reqbuf, buf_s);
+    Arena *arena = arena_new(CERV_DEF_ARENA_DEFAULT_SIZE);
+    Allocator a = arena_allocator(arena);
+
+    CervRequest *req = parse_req(reqbuf, buf_s, a);
     if (req == NULL) {
       fprintf(stderr, "malformed request\n");
       free(reqbuf);
@@ -91,7 +96,7 @@ int cerv_run(CervServer *s) {
       continue;
     }
 
-    CervResponse *res = cerv_response_new();
+    CervResponse *res = cerv_response_new(a);
 
     CervHandler *handler = cerv_router_match(s->router, req->method, req->path);
     if (handler != NULL) {
@@ -101,15 +106,13 @@ int cerv_run(CervServer *s) {
       cerv_response_set_body(res, "");
     }
 
-    char *resp_body = cerv_response_serialize(res);
-    int len = strlen(resp_body);
+    char *outbuf = cerv_response_serialize(res);
+    int len = strlen(outbuf);
 
-    send(clfd, resp_body, len, 0);
+    send(clfd, outbuf, len, 0);
 
     free(reqbuf);
-    free(resp_body);
-    close_req(req);
-    close_res(res);
+    arena_destroy(arena);
     close(clfd);
   }
 

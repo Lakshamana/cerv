@@ -19,8 +19,8 @@
  *   cerv_router_add(&router, "GET", "/hello", &h);
  */
 typedef struct {
-  void (*handle)(void *self, CervRequest *req, CervResponse *res);
-  void (*destroy)(void *self); // optional cleanup; NULL = no-op
+  void      (*handle)(void *self, CervRequest *req, CervResponse *res);
+  void      (*destroy)(void *self); // optional cleanup; NULL = no-op
 } CervHandler;
 
 #endif // CERV_HANDLER_H

@@ -6,7 +6,7 @@
 Arena *arena_new(size_t size) {
   Arena *a = calloc(1, sizeof(Arena));
   a->size = size;
-  a->buf = malloc(size);
+  a->buf = calloc(1, size);
 
   return a;
 }
