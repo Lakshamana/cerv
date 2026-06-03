@@ -1,7 +1,8 @@
 .PHONY: build clean test test-all
 
-TEST_FILE := $(filter-out test, $(MAKECMDGOALS))
-TEST_NAME := $(basename $(notdir $(TEST_FILE)))
+TEST_ARGS  := $(filter-out test, $(MAKECMDGOALS))
+TEST_SUITE := $(basename $(notdir $(firstword $(TEST_ARGS))))
+TEST_CASE  := $(word 2, $(TEST_ARGS))
 
 build:
 	cmake -B build -DCMAKE_TOOLCHAIN_FILE=$$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake
@@ -12,10 +13,10 @@ clean:
 	rm -rf build
 
 test: build
-	ctest --test-dir build -V $(if $(TEST_NAME),-R $(TEST_NAME))
-
-test-all: build
-	ctest --test-dir build -V
+	ctest --test-dir build -V $(if $(TEST_SUITE),-R "$(TEST_SUITE)$(if $(TEST_CASE),::$(TEST_CASE))")
 
 tests/unit/%:
+	@:
+
+test_%:
 	@:

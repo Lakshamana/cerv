@@ -444,39 +444,58 @@ static void test_check_done_malformed() {
   ASSERT_INT_EQ(done, -1, "malformed request should set done to -1");
 }
 
-int main(void) {
-  test_parse_get_no_body();
-  test_parse_post_with_body();
-  test_parse_query_string();
-  test_parse_req_qs_multiple_params();
-  test_parse_req_malformed_qs();
-  test_parse_multi_segment_path();
-  test_parse_large_url();
-  test_parse_large_body();
-  test_parse_method_variants();
-  test_parse_malformed();
-  test_parse_truncated();
-  test_parse_content_length_mismatch();
-  test_parse_root_path();
-  test_parse_post_empty_body();
-  test_qs_single_param();
-  test_qs_multiple_params();
-  test_qs_no_query_string();
-  test_qs_empty_after_question_mark();
-  test_qs_empty_value();
-  test_qs_malformed_no_equals();
-  test_qs_malformed_empty_key();
-  test_qs_cap_at_max_params();
-  test_qs_get_found();
-  test_qs_get_not_found();
-  test_headers_single();
-  test_headers_multiple();
-  test_headers_post_with_content_type();
-  test_check_done_complete();
-  test_check_done_partial();
-  test_check_done_malformed();
+int main(int argc, char *argv[]) {
+  typedef void (*TestFn)(void);
+  struct { const char *name; TestFn fn; } tests[] = {
+    {"test_parse_get_no_body",             test_parse_get_no_body},
+    {"test_parse_post_with_body",          test_parse_post_with_body},
+    {"test_parse_query_string",            test_parse_query_string},
+    {"test_parse_req_qs_multiple_params",  test_parse_req_qs_multiple_params},
+    {"test_parse_req_malformed_qs",        test_parse_req_malformed_qs},
+    {"test_parse_multi_segment_path",      test_parse_multi_segment_path},
+    {"test_parse_large_url",               test_parse_large_url},
+    {"test_parse_large_body",              test_parse_large_body},
+    {"test_parse_method_variants",         test_parse_method_variants},
+    {"test_parse_malformed",               test_parse_malformed},
+    {"test_parse_truncated",               test_parse_truncated},
+    {"test_parse_content_length_mismatch", test_parse_content_length_mismatch},
+    {"test_parse_root_path",               test_parse_root_path},
+    {"test_parse_post_empty_body",         test_parse_post_empty_body},
+    {"test_qs_single_param",               test_qs_single_param},
+    {"test_qs_multiple_params",            test_qs_multiple_params},
+    {"test_qs_no_query_string",            test_qs_no_query_string},
+    {"test_qs_empty_after_question_mark",  test_qs_empty_after_question_mark},
+    {"test_qs_empty_value",                test_qs_empty_value},
+    {"test_qs_malformed_no_equals",        test_qs_malformed_no_equals},
+    {"test_qs_malformed_empty_key",        test_qs_malformed_empty_key},
+    {"test_qs_cap_at_max_params",          test_qs_cap_at_max_params},
+    {"test_qs_get_found",                  test_qs_get_found},
+    {"test_qs_get_not_found",              test_qs_get_not_found},
+    {"test_headers_single",                test_headers_single},
+    {"test_headers_multiple",              test_headers_multiple},
+    {"test_headers_post_with_content_type", test_headers_post_with_content_type},
+    {"test_check_done_complete",           test_check_done_complete},
+    {"test_check_done_partial",            test_check_done_partial},
+    {"test_check_done_malformed",          test_check_done_malformed},
+  };
+  size_t ntests = sizeof(tests) / sizeof(tests[0]);
 
-  printf("%s\n%d passed, %d failed\n\n", failed > 0 ? _FAIL_STR : _PASS_STR,
+  if (argc == 2) {
+    for (size_t i = 0; i < ntests; i++) {
+      if (strcmp(argv[1], tests[i].name) == 0) {
+        tests[i].fn();
+        printf("%s\n%d assertions passed, %d failed\n\n", failed > 0 ? _FAIL_STR : _PASS_STR, passed, failed);
+        return failed > 0 ? 1 : 0;
+      }
+    }
+    fprintf(stderr, "unknown test: %s\n", argv[1]);
+    return 2;
+  }
+
+  for (size_t i = 0; i < ntests; i++)
+    tests[i].fn();
+
+  printf("%s\n%d assertions passed, %d failed\n\n", failed > 0 ? _FAIL_STR : _PASS_STR,
          passed, failed);
 
   return failed > 0 ? 1 : 0;

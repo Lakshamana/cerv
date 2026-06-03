@@ -169,20 +169,39 @@ static void test_arena_strndup_overflow() {
 
 /* ── main ────────────────────────────────────────────────────────────────── */
 
-int main(void) {
-  test_arena_new();
-  test_arena_alloc_basic();
-  test_arena_alloc_alignment();
-  test_arena_alloc_zero();
-  test_arena_alloc_overflow();
-  test_arena_alloc_exact_fit();
-  test_arena_reset_clears_offset();
-  test_arena_reset_reuse();
-  test_arena_strndup_basic();
-  test_arena_strndup_empty_string();
-  test_arena_strndup_overflow();
+int main(int argc, char *argv[]) {
+  typedef void (*TestFn)(void);
+  struct { const char *name; TestFn fn; } tests[] = {
+    {"test_arena_new",                test_arena_new},
+    {"test_arena_alloc_basic",        test_arena_alloc_basic},
+    {"test_arena_alloc_alignment",    test_arena_alloc_alignment},
+    {"test_arena_alloc_zero",         test_arena_alloc_zero},
+    {"test_arena_alloc_overflow",     test_arena_alloc_overflow},
+    {"test_arena_alloc_exact_fit",    test_arena_alloc_exact_fit},
+    {"test_arena_reset_clears_offset", test_arena_reset_clears_offset},
+    {"test_arena_reset_reuse",        test_arena_reset_reuse},
+    {"test_arena_strndup_basic",      test_arena_strndup_basic},
+    {"test_arena_strndup_empty_string", test_arena_strndup_empty_string},
+    {"test_arena_strndup_overflow",   test_arena_strndup_overflow},
+  };
+  size_t ntests = sizeof(tests) / sizeof(tests[0]);
 
-  printf("%s\n%d passed, %d failed\n\n", failed > 0 ? _FAIL_STR : _PASS_STR,
+  if (argc == 2) {
+    for (size_t i = 0; i < ntests; i++) {
+      if (strcmp(argv[1], tests[i].name) == 0) {
+        tests[i].fn();
+        printf("%s\n%d assertions passed, %d failed\n\n", failed > 0 ? _FAIL_STR : _PASS_STR, passed, failed);
+        return failed > 0 ? 1 : 0;
+      }
+    }
+    fprintf(stderr, "unknown test: %s\n", argv[1]);
+    return 2;
+  }
+
+  for (size_t i = 0; i < ntests; i++)
+    tests[i].fn();
+
+  printf("%s\n%d assertions passed, %d failed\n\n", failed > 0 ? _FAIL_STR : _PASS_STR,
          passed, failed);
 
   return failed > 0 ? 1 : 0;

@@ -92,14 +92,33 @@ static void test_cerv_router_match() {
   ASSERT_NOT_NULL(h1, "handler should not be NULL");
 }
 
-int main(void) {
-  test_cerv_router_new();
-  test_cerv_router_add_route();
-  test_cerv_router_match();
-  test_cerv_router_add_route_already_exists();
-  test_cerv_router_cannot_overflow_route_buffer();
+int main(int argc, char *argv[]) {
+  typedef void (*TestFn)(void);
+  struct { const char *name; TestFn fn; } tests[] = {
+    {"test_cerv_router_new",                          test_cerv_router_new},
+    {"test_cerv_router_add_route",                    test_cerv_router_add_route},
+    {"test_cerv_router_match",                        test_cerv_router_match},
+    {"test_cerv_router_add_route_already_exists",     test_cerv_router_add_route_already_exists},
+    {"test_cerv_router_cannot_overflow_route_buffer", test_cerv_router_cannot_overflow_route_buffer},
+  };
+  size_t ntests = sizeof(tests) / sizeof(tests[0]);
 
-  printf("%s\n%d passed, %d failed\n\n", failed > 0 ? _FAIL_STR : _PASS_STR,
+  if (argc == 2) {
+    for (size_t i = 0; i < ntests; i++) {
+      if (strcmp(argv[1], tests[i].name) == 0) {
+        tests[i].fn();
+        printf("%s\n%d assertions passed, %d failed\n\n", failed > 0 ? _FAIL_STR : _PASS_STR, passed, failed);
+        return failed > 0 ? 1 : 0;
+      }
+    }
+    fprintf(stderr, "unknown test: %s\n", argv[1]);
+    return 2;
+  }
+
+  for (size_t i = 0; i < ntests; i++)
+    tests[i].fn();
+
+  printf("%s\n%d assertions passed, %d failed\n\n", failed > 0 ? _FAIL_STR : _PASS_STR,
          passed, failed);
 
   return failed > 0 ? 1 : 0;
