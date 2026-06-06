@@ -33,6 +33,8 @@ add_executable(test_arena tests/unit/test_arena.c src/arena.c)
 target_include_directories(test_arena PRIVATE include tests)
 add_executable(test_response tests/unit/test_response.c src/response.c src/arena.c)
 target_include_directories(test_response PRIVATE include tests)
+add_executable(test_chan tests/unit/test_chan.c src/chan.c)
+target_include_directories(test_chan PRIVATE include tests)
 # Scan source file for `static void test_*` functions and register each as its
 # own CTest entry — no manual listing needed when adding new tests.
 function(cerv_discover_tests target source)
@@ -47,3 +49,4 @@ cerv_discover_tests(test_router   tests/unit/test_router.c)
 cerv_discover_tests(test_request  tests/unit/test_request.c)
 cerv_discover_tests(test_arena    tests/unit/test_arena.c)
 cerv_discover_tests(test_response tests/unit/test_response.c)
+cerv_discover_tests(test_chan     tests/unit/test_chan.c)
