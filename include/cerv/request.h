@@ -20,10 +20,10 @@ typedef struct {
 } RequestParam;
 
 typedef struct {
-  const char*   method;   // "GET", "POST", ...
-  char*         path;     // "/hello"
+  const char*   method;
+  char*         path;
   size_t        path_len;
-  char*         body;     // raw request body (may be NULL)
+  char*         body;
   size_t        body_len;
   RequestHeader headers[CERV_MAX_REQ_HEADERS];
   size_t        headers_count;

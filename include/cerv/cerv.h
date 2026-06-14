@@ -7,6 +7,7 @@ typedef struct {
   CervRouter* router;
   int         port;
   int         workers;
+  void*       deps;
 } Cerv;
 
 Cerv* cerv_new(int port);

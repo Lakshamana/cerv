@@ -21,6 +21,7 @@
 typedef struct {
   void      (*handle)(void *self, CervRequest *req, CervResponse *res);
   void      (*destroy)(void *self); // optional cleanup; NULL = no-op
+  void*     deps;
 } CervHandler;
 
 #endif // CERV_HANDLER_H
