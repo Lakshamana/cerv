@@ -18,6 +18,6 @@ int main(void) {
   HelloHandler h = {.vtable = {handler, NULL}};
   cerv_router_add(server->router, "POST", "/", &h);
 
-  cerv_run(server);
+  // cerv_run(server);
   return 0;
 }

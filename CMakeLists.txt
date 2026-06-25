@@ -11,7 +11,7 @@ add_library(cerv_core STATIC
   src/router.c
   src/request.c
   src/response.c
-  src/task.c
+  src/process.c
   src/arena.c
 )
 target_include_directories(cerv_core PUBLIC include)
@@ -50,3 +50,6 @@ cerv_discover_tests(test_request  tests/unit/test_request.c)
 cerv_discover_tests(test_arena    tests/unit/test_arena.c)
 cerv_discover_tests(test_response tests/unit/test_response.c)
 cerv_discover_tests(test_chan     tests/unit/test_chan.c)
+add_executable(test_process tests/unit/test_process.c src/process.c src/chan.c)
+target_include_directories(test_process PRIVATE include tests)
+cerv_discover_tests(test_process tests/unit/test_process.c)
