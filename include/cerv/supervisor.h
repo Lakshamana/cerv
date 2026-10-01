@@ -52,6 +52,7 @@ typedef struct {
   pid_t             pid;
   CervWorkerVtable *vtable;
   void             *self;
+  int               stop_w_fd;
 } CervUserWorkerEntry;
 
 typedef struct {
@@ -70,7 +71,7 @@ typedef struct {
 typedef struct {
   int                  n_slots;
   CervWorkerStatus    *worker_status;
-  uint8_t             *free_list;
+  uint8_t             *free_list;  // slots
   uint8_t             *arena_slots;
   size_t               total_size;
   CervFiberCheckpoint *checkpoints;
