@@ -17,11 +17,13 @@ typedef struct {
  * A pipe is used to detect exec failures — if callback() returns,
  * errno is written to the pipe and the child exits 127.
  */
-Process spawn(void* ctx, SpawnFn callback);
+Process spawn(void *ctx, SpawnFn callback);
 
 /**
  * Returns a supervised Process
  */
 Process supervise(void* ctx, SuperviseFn callback);
+
+int is_process_ok(Process* p);
 
 #endif // CERV_PROCESS_H

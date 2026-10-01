@@ -62,3 +62,5 @@ Process supervise(void *ctx, SuperviseFn callback) {
 
   return p;
 }
+
+int is_process_ok(Process *p) { return p->pid != -1; }
