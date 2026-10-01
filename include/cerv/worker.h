@@ -1,5 +1,8 @@
-#include "cerv/cerv.h"
+#ifndef CERV_WORKER_H
+#define CERV_WORKER_H
+
 #include <stdint.h>
+#include <unistd.h>
 
 typedef struct {
   void (*init)    (void* self);
@@ -20,5 +23,4 @@ typedef struct {
   uint64_t timestamp_ms;
 } CervHeartbeat;
 
-typedef void (*CervBootstrapFn)(Cerv* s);
-typedef void (*CervTeardownFn) (Cerv* s);
+#endif // !CERV_WORKER_H
