@@ -328,7 +328,7 @@ int cerv_run(Cerv *s, CervBootstrapFn bootstrap, CervTeardownFn teardown) {
     }
   }
 
-  // TODO: move this to worker main function
+  // TODO: move this to worker main function and adapt
   while (1) {
     int clfd;
     if ((clfd = accept(socket_d, NULL, NULL)) < 0) {
